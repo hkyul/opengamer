@@ -9,11 +9,11 @@
     </style>
 </head>
 <body>
-
+    
 <canvas id="myCanvas" width="480" height="320"></canvas>
 
 <script>
-//(시작)변수구간--------------------------------
+//변수구간------
     var canvas = document.getElementById("myCanvas"); //위에서 생성한 캔버스의 id값을통해 canvas변수에 넣는다.
     var ctx = canvas.getContext("2d"); //2d rendering context를 ctx변수에 저장.(실질적인 표현기능)
     var x = canvas.width/2; //x좌표의 초기값
@@ -27,10 +27,26 @@
     var paddleX = (canvas.width-paddleWidth)/2; //x축위에 시작지점.
     var rightPressed = false; //패들눌렸는지확인
     var leftPressed = false;
+    //벽돌변수
+    var brickRowCount = 3; //행의 수
+    var brickColumnCount = 5; //열의 수
+    var brickWidth = 75; //가로길이
+    var brickHeight = 20; //세로길이
+    var brickPadding = 10; //벽돌간 간격
+    var brickOffsetTop = 30; //캔버스의 모서리에 닿지않도록 오프셋 세로
+    var brickOffsetLeft = 30; //가로
+
+    //벽돌생성
+    var bricks = [];
+    for(var c=0; c<brickColumnCount; c++) {
+        bricks[c] = [];
+        for(var r=0; r<brickRowCount; r++) {
+            bricks[c][r] = { x: 0, y: 0 };
+        }
+    }
     //키 이벤트리스너---
     document.addEventListener("keydown", keyDownHandler, false);
     document.addEventListener("keyup", keyUpHandler, false);
-//--변수구간(끝)--------------------------------
 
     //키 눌렸는지 체크함수(누를떄, 떘을때)
     function keyDownHandler(e) {
@@ -65,19 +81,48 @@
         ctx.fill();
         ctx.closePath();
     }   
+    //블럭그리기함수(c는열 r은행)
+    function drawBricks() {
+        for(var c=0; c<brickColumnCount; c++) {
+            for(var r=0; r<brickRowCount; r++) {
+                var brickX = (c*(brickWidth+brickPadding))+brickOffsetLeft; //이부분살펴보기
+                var brickY = (r*(brickHeight+brickPadding))+brickOffsetTop; //이제 모든 벽돌들을 올바른 위치에, 알맞은 간격을 두고, 캔버스 모서리로부터 오프셋 값만큼의 거리를 둔 상태로 그릴수 있게되었습니다.
+                bricks[c][r].x = brickX;
+                bricks[c][r].y = brickY;
+                ctx.beginPath();
+                ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                ctx.fillStyle = "#0095DD";
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+    }
 
     //update구문
     function draw(){
         ctx.clearRect(0, 0, canvas.width, canvas.height); //이전 켄버스자국 지우기.
+        drawBricks(); //블럭그리기
         drawBall(); //공그리기
         drawPaddle(); //패들그리기
 
-        //공 튕김기능.
+        //좌우 공 튕김 기능
         if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
         dx = -dx;
         }
-        if(y + dy > canvas.height-ballRadius || y + dy < ballRadius) {
+        //위쪽 공 튕김 기능(canvas의 y값은 좌상단이0으로 아래로갈수록 커짐)
+        if(y + dy < ballRadius) {
             dy = -dy;
+        //공이 아래쪽으로 벗어날때
+        } else if(y + dy > canvas.height-ballRadius) {
+            //공의x값이 패들내에 있으면 위로 튕김
+            if(x > paddleX && x < paddleX + paddleWidth) {
+                dy = -dy;
+            }
+            //아니면 게임오버
+            else {
+                alert("GAME OVER");
+                document.location.reload();
+            }
         }
         //키패드 이동기능(&&후 부분은 키패드가 캔버스밖으로 벗어나지 않도록해줌)
         if(rightPressed && paddleX < canvas.width-paddleWidth) {
